@@ -3,8 +3,8 @@ import time
 
 import mlflow
 import numpy as np
+import sklearn.metrics as metrics
 import torch
-from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 from tqdm import tqdm, trange
 
 import utils
@@ -77,20 +77,20 @@ def evaluate(model, test_loader, device):
             all_preds.append(preds)
     targets = torch.cat(all_targets)
     predicted = torch.cat(all_preds)
-    accuracy = accuracy_score(
+    accuracy = metrics.accuracy_score(
         targets.detach().cpu().numpy(), predicted.detach().cpu().numpy()
     )
-    f1 = f1_score(
+    f1 = metrics.f1_score(
         targets.detach().cpu().numpy(),
         predicted.detach().cpu().numpy(),
         average="binary",
     )
-    recall = recall_score(
+    recall = metrics.recall_score(
         targets.detach().cpu().numpy(),
         predicted.detach().cpu().numpy(),
         average="binary",
     )
-    precision = precision_score(
+    precision = metrics.precision_score(
         targets.detach().cpu().numpy(),
         predicted.detach().cpu().numpy(),
         average="binary",
