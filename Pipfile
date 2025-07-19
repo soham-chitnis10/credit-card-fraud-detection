@@ -1,0 +1,26 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[[source]]
+url = "https://download.pytorch.org/whl/cpu"
+verify_ssl = true
+name = "downloadpytorch"
+
+[packages]
+torch = {version = "*", index = "downloadpytorch"}
+numpy = "*"
+pandas = "*"
+scikit-learn = "*"
+prefect = "*"
+mlflow = "*"
+tqdm = "*"
+
+[dev-packages]
+black = "*"
+isort = "*"
+pylint = "*"
+
+[requires]
+python_version = "3.12"
