@@ -5,6 +5,7 @@ import mlflow
 import numpy as np
 import sklearn.metrics as metrics
 import torch
+from prefect import flow, task
 from tqdm import tqdm, trange
 
 import utils
@@ -36,6 +37,7 @@ def parse_args():
     return parser.parse_args()
 
 
+@task(name="load_preprocess_data", log_prints=True)
 def load_preprocess_data():
     df_train = utils.load_data("data/fraudTrain.csv")
     df_test = utils.load_data("data/fraudTest.csv")
@@ -98,6 +100,7 @@ def evaluate(model, test_loader, device):
     return accuracy, f1, recall, precision
 
 
+@task(name="run_experiment", log_prints=True)
 def run_experiment(
     train_loader,
     test_loader,
@@ -142,6 +145,7 @@ def run_experiment(
     return best_recall
 
 
+@task(name="grid_search", log_prints=True)
 def grid_search(train_loader, test_loader, device, hidden_size, epochs, feature_size):
     learning_rates = torch.arange(0.0001, 0.001 + 1e-9, 0.0001)
     best_model_recall = 0.0
@@ -166,6 +170,7 @@ def grid_search(train_loader, test_loader, device, hidden_size, epochs, feature_
     return best_model_recall
 
 
+@task(name="register_model", log_prints=True)
 def register_model():
     """
     Register the best model in MLflow Model Registry.
@@ -197,6 +202,7 @@ def register_model():
     )
 
 
+@flow(name="main_flow", log_prints=True)
 def main(args):
     mlflow.set_tracking_uri("http://localhost:5000")
     mlflow.set_experiment(f"credit-card-fraud-detection-{int(time.time())}")
