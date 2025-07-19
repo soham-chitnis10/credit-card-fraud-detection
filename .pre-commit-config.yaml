@@ -8,11 +8,6 @@ repos:
     -   id: end-of-file-fixer
     -   id: check-yaml
     -   id: check-added-large-files
-# -   repo: https://github.com/pycqa/isort
-#     rev: 5.11.2
-#     hooks:
-#     -   id: isort
-#         name: isort (python)
   # Using this mirror lets us use mypyc-compiled black, which is about 2x faster
 -   repo: https://github.com/psf/black-pre-commit-mirror
     rev: 25.1.0
@@ -23,3 +18,8 @@ repos:
         # pre-commit's default_language_version, see
         # https://pre-commit.com/#top_level-default_language_version
         language_version: python3.12.3
+# -   repo: https://github.com/pycqa/isort
+#     rev: 5.12.0
+#     hooks:
+#     -   id: isort
+#         name: isort (python)
