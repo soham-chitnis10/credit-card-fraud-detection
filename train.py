@@ -1,14 +1,23 @@
 import argparse
+import os
 import time
 
 import mlflow
+import mlflow.utils
 import numpy as np
 import sklearn.metrics as metrics
 import torch
+from dotenv import load_dotenv
 from prefect import flow, task
-from tqdm import tqdm, trange
 
 import utils
+
+if load_dotenv():
+    print("Loaded environment variables from .env file")
+else:
+    print("No .env file found, using default environment variables")
+
+TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
 
 
 def parse_args():
@@ -33,6 +42,22 @@ def parse_args():
         type=float,
         default=0.001,
         help="Learning rate for the optimizer",
+    )
+    parser.add_argument(
+        "--grid_search",
+        action="store_true",
+        help="Perform grid search for hyperparameter tuning",
+    )
+    parser.add_argument(
+        "--register_model",
+        action="store_true",
+        help="Register the best model in MLflow Model Registry",
+    )
+    parser.add_argument(
+        "--quick_debug",
+        action="store_true",
+        default=False,
+        help="Run a quick debug with reduced dataset and epochs",
     )
     return parser.parse_args()
 
@@ -121,14 +146,15 @@ def run_experiment(
         optimizer = utils.get_optimizer(model, lr=learning_rate)
         loss = utils.get_loss_function()
         best_recall = 0.0
-
+        best_f1 = 0.0
+        best_precision = 0.0
         for epoch in range(epochs):
             train_loss = train(model, train_loader, optimizer, loss, device)
             print(f"Epoch {epoch+1}/{epochs}, Loss: {train_loss:.4f}")
             accuracy, f1, recall, precision = evaluate(model, test_loader, device)
-            print(f"Epoch {epoch+1}, Accuracy: {accuracy:.2f}%")
+            print(f"Epoch {epoch+1}, Accuracy: {accuracy:.4f}")
             print(
-                f"Epoch {epoch+1}, F1 Score: {f1:.2f} Recall: {recall:.2f} Precision: {precision:.2f}"
+                f"Epoch {epoch+1}, F1 Score: {f1:.4f} Recall: {recall:.4f} Precision: {precision:.4f}"
             )
             mlflow.log_metric("train_loss", train_loss, step=epoch)
             mlflow.log_metric("accuracy", accuracy, step=epoch)  # type: ignore
@@ -137,36 +163,52 @@ def run_experiment(
             mlflow.log_metric("precision", precision, step=epoch)  # type: ignore
             if recall >= best_recall:
                 best_recall = recall
-                mlflow.pytorch.log_model(model, name="model")  # type: ignore
-                torch.save(model.state_dict(), "best_model.pth")
+                best_f1 = f1
+                best_precision = precision
+                mlflow.pytorch.log_model(
+                    model,
+                    name="model",
+                )  # type: ignore
                 print(f"Saved best model with Recall score: {best_recall:.2f}")
         print(f"Best model Recall: {best_recall:.2f}")
         mlflow.log_metric("best_recall", best_recall)  # type: ignore
-    return best_recall
+        mlflow.log_metric("best_f1", best_f1)  # type: ignore
+        mlflow.log_metric("best_precision", best_precision)  # type: ignore
+    return best_recall, best_f1, best_precision
 
 
 @task(name="grid_search", log_prints=True)
 def grid_search(train_loader, test_loader, device, hidden_size, epochs, feature_size):
     learning_rates = torch.arange(0.0001, 0.001 + 1e-9, 0.0001)
     best_model_recall = 0.0
-    best_lr = 0
-    for lr in learning_rates:
-        print(f"Training with learning rate: {lr:.4f}")
-        model_recall = run_experiment(
-            train_loader,
-            test_loader,
-            device,
-            hidden_size,
-            epochs,
-            feature_size,
-            learning_rate=lr.item(),
-        )
-        if model_recall > best_model_recall:
-            best_model_recall = model_recall
-            best_lr = lr
+    best_model_f1 = 0.0
+    best_model_precision = 0.0
+    best_parameters = {}
+    hidden_sizes = [256, 512]
+    for hidden_size in hidden_sizes:
+        for lr in learning_rates:
+            print(f"Training with learning rate: {lr:.4f}")
+            model_recall, model_f1, model_precision = run_experiment(
+                train_loader,
+                test_loader,
+                device,
+                hidden_size,
+                epochs,
+                feature_size,
+                learning_rate=lr.item(),
+            )
+            if model_recall > best_model_recall:
+                best_model_recall = model_recall
+                best_model_f1 = model_f1
+                best_model_precision = model_precision
+                best_parameters["lr"] = lr.item()
+                best_parameters["hidden_size"] = hidden_size
 
-    print(f"Best model Recall: {best_model_recall:.2f}")
-    print(f"Best learning rate: {best_lr:.4f}")
+    print(f"Best model Recall: {best_model_recall:.4f}")
+    print(f"Best model F1 Score: {best_model_f1:.4f}")
+    print(f"Best model Precision: {best_model_precision:.4f}")
+    print(f"Best learning rate: {best_parameters['lr']:.4f}")
+    print(f"Best hidden size: {best_parameters['hidden_size']}")
     return best_model_recall
 
 
@@ -175,7 +217,7 @@ def register_model():
     """
     Register the best model in MLflow Model Registry.
     """
-    client = mlflow.tracking.MlflowClient("http://localhost:5000")  # type: ignore
+    client = mlflow.MlflowClient(TRACKING_URI)
     experiments = client.search_experiments()
     if not experiments:
         print("No experiments found.")
@@ -183,28 +225,26 @@ def register_model():
     best_experiment = experiments[0]
     runs = client.search_runs(
         experiment_ids=[best_experiment.experiment_id],
-        order_by=["metrics.best_recall desc"],
+        order_by=[
+            "metrics.best_recall desc",
+            "metrics.best_f1 desc",
+            "metrics.best_precision desc",
+        ],
     )
     if not runs:
         print("No runs found.")
         return
     best_run = runs[0]
     print(f"Best run: {best_run.info.run_id}")
-    try:
-        client.get_registered_model("CreditCardFraudDetector-MLP")
-        print("Model already registered.")
-    except:
-        client.create_registered_model("CreditCardFraudDetector-MLP")
-    client.create_model_version(
+    mlflow.register_model(
+        model_uri=f"runs:/{best_run.info.run_id}/model",
         name="CreditCardFraudDetector-MLP",
-        source=best_run.info.artifact_uri,  # type: ignore
-        run_id=best_run.info.run_id,
     )
 
 
 @flow(name="main_flow", log_prints=True)
 def main(args):
-    mlflow.set_tracking_uri("http://localhost:5000")
+    mlflow.set_tracking_uri(TRACKING_URI)
     mlflow.set_experiment(f"credit-card-fraud-detection-{int(time.time())}")
     utils.seed_everything(42)
     X_train_scaled, X_test_scaled, y_train, y_test = load_preprocess_data()
@@ -219,10 +259,31 @@ def main(args):
     device = utils.get_device(args.use_cpu)
     print(f"Using device: {device}")
     feature_size = X_train_scaled.shape[1]
-    grid_search(
-        train_loader, test_loader, device, args.hidden_size, args.epochs, feature_size
-    )
-    register_model()
+    if args.grid_search and not args.quick_debug:
+        print("Ignoring provided model parameters")
+        print("Performing grid search for hyperparameter tuning")
+        best_f1 = grid_search(
+            train_loader,
+            test_loader,
+            device,
+            args.hidden_size,
+            args.epochs,
+            feature_size,
+        )
+    else:
+        if args.quick_debug:
+            args.epochs = 3
+        f1 = run_experiment(
+            train_loader,
+            test_loader,
+            device,
+            args.hidden_size,
+            args.epochs,
+            feature_size,
+            learning_rate=args.learning_rate,
+        )
+    if args.register_model:
+        register_model()
 
 
 if __name__ == "__main__":
