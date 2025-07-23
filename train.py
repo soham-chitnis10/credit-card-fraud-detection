@@ -165,10 +165,10 @@ def run_experiment(
                 best_recall = recall
                 best_f1 = f1
                 best_precision = precision
-                mlflow.pytorch.log_model(
+                mlflow.pytorch.log_model(  # type: ignore
                     model,
                     name="model",
-                )  # type: ignore
+                )
                 print(f"Saved best model with Recall score: {best_recall:.2f}")
         print(f"Best model Recall: {best_recall:.2f}")
         mlflow.log_metric("best_recall", best_recall)  # type: ignore
