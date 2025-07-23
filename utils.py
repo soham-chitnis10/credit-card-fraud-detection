@@ -7,6 +7,31 @@ import torch
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from torch.utils.data import DataLoader, TensorDataset
 
+from model import CreditCardFraudDetector
+
+features = [
+    "amt",
+    "lat",
+    "long",
+    "merch_lat",
+    "merch_long",
+    "trans_time",
+    "month",
+    "category_food_dining",
+    "category_gas_transport",
+    "category_grocery_net",
+    "category_grocery_pos",
+    "category_health_fitness",
+    "category_home",
+    "category_kids_pets",
+    "category_misc_net",
+    "category_misc_pos",
+    "category_personal_care",
+    "category_shopping_net",
+    "category_shopping_pos",
+    "category_travel",
+]
+
 
 def load_data(file_path):
     """
@@ -156,7 +181,6 @@ def get_model(input_size, hidden_size=256):
     Returns:
     CreditCardFraudDetector: The model instance.
     """
-    from model import CreditCardFraudDetector
 
     return CreditCardFraudDetector(input_size=input_size, hidden_size=hidden_size)
 
