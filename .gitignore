@@ -210,3 +210,4 @@ data/*
 *.pth
 *.db
 mlartifacts/*
+*.pkl

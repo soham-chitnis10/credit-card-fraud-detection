@@ -1,5 +1,6 @@
 import argparse
 import os
+import pickle
 import time
 
 import mlflow
@@ -68,11 +69,13 @@ def load_preprocess_data():
     df_test = utils.load_data("data/fraudTest.csv")
     df_train = utils.preprocess_data(df_train)
     df_test = utils.preprocess_data(df_test)
-    X_train_scaled = utils.normalize_data(df_train.drop(columns=["is_fraud"]))
+    scaler, X_train_scaled = utils.get_scaler_and_features(
+        df_train.drop(columns=["is_fraud"])
+    )
     y_train = df_train["is_fraud"].values
-    X_test_scaled = utils.normalize_data(df_test.drop(columns=["is_fraud"]))
+    X_test_scaled = scaler.transform(df_test.drop(columns=["is_fraud"]))
     y_test = df_test["is_fraud"].values
-    return X_train_scaled, X_test_scaled, y_train, y_test
+    return X_train_scaled, X_test_scaled, y_train, y_test, scaler
 
 
 def train(model, train_loader, optimizer, loss_fn, device):
@@ -133,6 +136,7 @@ def run_experiment(
     hidden_size,
     epochs,
     feature_size,
+    scaler,
     learning_rate=1e-3,
 ):
     with mlflow.start_run():
@@ -140,6 +144,7 @@ def run_experiment(
         mlflow.log_param("epochs", epochs)
         mlflow.log_param("learning_rate", learning_rate)
         mlflow.log_param("batch_size", train_loader.batch_size)
+        mlflow.log_artifact("scaler.pkl")
         model = utils.get_model(input_size=feature_size, hidden_size=hidden_size).to(
             device
         )
@@ -178,7 +183,9 @@ def run_experiment(
 
 
 @task(name="grid_search", log_prints=True)
-def grid_search(train_loader, test_loader, device, hidden_size, epochs, feature_size):
+def grid_search(
+    train_loader, test_loader, device, hidden_size, epochs, feature_size, scaler
+):
     learning_rates = torch.arange(0.0001, 0.001 + 1e-9, 0.0001)
     best_model_recall = 0.0
     best_model_f1 = 0.0
@@ -195,6 +202,7 @@ def grid_search(train_loader, test_loader, device, hidden_size, epochs, feature_
                 hidden_size,
                 epochs,
                 feature_size,
+                scaler=scaler,
                 learning_rate=lr.item(),
             )
             if model_recall > best_model_recall:
@@ -247,8 +255,9 @@ def main(args):
     mlflow.set_tracking_uri(TRACKING_URI)
     mlflow.set_experiment(f"credit-card-fraud-detection-{int(time.time())}")
     utils.seed_everything(42)
-    X_train_scaled, X_test_scaled, y_train, y_test = load_preprocess_data()
-
+    X_train_scaled, X_test_scaled, y_train, y_test, scaler = load_preprocess_data()
+    with open("scaler.pkl", "wb") as f:
+        pickle.dump(scaler, f)
     train_loader = utils.get_dataloader(
         X_train_scaled, y_train, batch_size=args.batch_size, train=True
     )
@@ -269,6 +278,7 @@ def main(args):
             args.hidden_size,
             args.epochs,
             feature_size,
+            scaler=scaler,
         )
     else:
         if args.quick_debug:
@@ -280,6 +290,7 @@ def main(args):
             args.hidden_size,
             args.epochs,
             feature_size,
+            scaler=scaler,
             learning_rate=args.learning_rate,
         )
     if args.register_model:

@@ -69,7 +69,7 @@ def preprocess_data(df):
     return df
 
 
-def normalize_data(df):
+def get_scaler_and_features(df):
     """
     Normalize the DataFrame by scaling numerical features.
 
@@ -77,12 +77,13 @@ def normalize_data(df):
     df (pd.DataFrame): The DataFrame to normalize.
 
     Returns:
-    pd.DataFrame: The normalized DataFrame.
+    tuple: A tuple containing the scaler and the normalized features.
     """
+
     scaler = StandardScaler()
     features = scaler.fit_transform(df)
 
-    return features
+    return scaler, features
 
 
 def seed_everything(seed=42):
