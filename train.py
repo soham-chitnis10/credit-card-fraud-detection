@@ -1,14 +1,18 @@
+"""
+Training script for credit card fraud detection model.
+"""
+
 import argparse
 import os
 import pickle
 import time
 
 import mlflow
-import numpy as np
-import sklearn.metrics as metrics
+import mlflow.pytorch
 import torch
 from dotenv import load_dotenv
 from prefect import flow, task
+from sklearn import metrics
 
 import utils
 
@@ -64,6 +68,11 @@ def parse_args():
 
 @task(name="load_preprocess_data", log_prints=True)
 def load_preprocess_data():
+    """
+    Load and preprocess the training and test datasets.
+    Returns:
+        tuple: Scaled training and test features, training and test labels, and the scaler.
+    """
     df_train = utils.load_data("data/fraudTrain.csv")
     df_test = utils.load_data("data/fraudTest.csv")
     df_train = utils.preprocess_data(df_train)
@@ -78,6 +87,17 @@ def load_preprocess_data():
 
 
 def train(model, train_loader, optimizer, loss_fn, device):
+    """
+    Train the model for one epoch.
+    Args:
+        model (torch.nn.Module): The model to train.
+        train_loader (DataLoader): DataLoader for the training data.
+        optimizer (torch.optim.Optimizer): Optimizer for the model.
+        loss_fn (callable): Loss function to use for training.
+        device (torch.device): Device to run the training on (CPU or GPU).
+    Returns:
+        float: Average loss for the epoch.
+    """
     model.train()
     total_loss = 0.0
     for batch in train_loader:
@@ -93,6 +113,15 @@ def train(model, train_loader, optimizer, loss_fn, device):
 
 
 def evaluate(model, test_loader, device):
+    """
+    Evaluate the model on the test dataset.
+    Args:
+        model (torch.nn.Module): The model to evaluate.
+        test_loader (DataLoader): DataLoader for the test data.
+        device (torch.device): Device to run the evaluation on (CPU or GPU).
+    Returns:
+        tuple: Accuracy, F1 score, recall, and precision of the model on the test data.
+    """
     model.eval()
     all_targets = []
     all_preds = []
@@ -138,6 +167,20 @@ def run_experiment(
     scaler,
     learning_rate=1e-3,
 ):
+    """
+    Run a training experiment with the specified parameters.
+    Args:
+        train_loader (DataLoader): DataLoader for the training data.
+        test_loader (DataLoader): DataLoader for the test data.
+        device (torch.device): Device to run the training on (CPU or GPU).
+        hidden_size (int): Size of the hidden layer in the model.
+        epochs (int): Number of epochs to train.
+        feature_size (int): Number of features in the input data.
+        scaler (sklearn.preprocessing.StandardScaler): Scaler for preprocessing input data.
+        learning_rate (float): Learning rate for the optimizer.
+    Returns:
+        tuple: Best recall, F1 score, and precision achieved during training.
+    """
     with mlflow.start_run():
         mlflow.log_param("hidden_size", hidden_size)
         mlflow.log_param("epochs", epochs)
@@ -169,15 +212,17 @@ def run_experiment(
                 best_recall = recall
                 best_f1 = f1
                 best_precision = precision
-                mlflow.pytorch.log_model(  # type: ignore
-                    model,
-                    name="model",
-                )
+                torch.save(model.state_dict(), "best_model.pth")
                 print(f"Saved best model with Recall score: {best_recall:.2f}")
         print(f"Best model Recall: {best_recall:.2f}")
         mlflow.log_metric("best_recall", best_recall)  # type: ignore
         mlflow.log_metric("best_f1", best_f1)  # type: ignore
         mlflow.log_metric("best_precision", best_precision)  # type: ignore
+        best_model = utils.get_model(
+            input_size=feature_size, hidden_size=hidden_size
+        ).to(device)
+        best_model.load_state_dict(torch.load("best_model.pth"))
+        mlflow.pytorch.log_model(best_model, name="model")  # type: ignore
     return best_recall, best_f1, best_precision
 
 
@@ -185,6 +230,19 @@ def run_experiment(
 def grid_search(
     train_loader, test_loader, device, hidden_size, epochs, feature_size, scaler
 ):
+    """
+    Perform grid search for hyperparameter tuning.
+    Args:
+        train_loader (DataLoader): DataLoader for the training data.
+        test_loader (DataLoader): DataLoader for the test data.
+        device (torch.device): Device to run the training on (CPU or GPU).
+        hidden_size (int): Size of the hidden layer in the model.
+        epochs (int): Number of epochs to train.
+        feature_size (int): Number of features in the input data.
+        scaler (sklearn.preprocessing.StandardScaler): Scaler for preprocessing input data.
+    Returns:
+        float: Best recall achieved during grid search.
+    """
     learning_rates = torch.arange(0.0001, 0.001 + 1e-9, 0.0001)
     best_model_recall = 0.0
     best_model_f1 = 0.0
@@ -246,6 +304,10 @@ def register_model():
 
 @flow(name="main_flow", log_prints=True)
 def main(args):
+    """Main flow for training the credit card fraud detection model.
+    Args:
+        args (argparse.Namespace): Command line arguments.
+    """
     mlflow.set_tracking_uri(TRACKING_URI)
     mlflow.set_experiment(f"credit-card-fraud-detection-{int(time.time())}")
     utils.seed_everything(42)

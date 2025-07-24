@@ -1,7 +1,15 @@
-import torch.nn as nn
+"""
+A simple MLP model for credit card fraud detection.
+"""
+
+from torch import nn
 
 
 class CreditCardFraudDetector(nn.Module):
+    """
+    A simple MLP model for credit card fraud detection.
+    """
+
     def __init__(self, input_size, hidden_size=256):
         super(CreditCardFraudDetector, self).__init__()
         self.model = nn.Sequential(
@@ -18,4 +26,9 @@ class CreditCardFraudDetector(nn.Module):
         )
 
     def forward(self, x):
+        """
+        Forward pass through the model.
+        Args:
+            x (torch.Tensor): Input tensor of shape (batch_size, input_size).
+        """
         return self.model(x)

@@ -1,13 +1,16 @@
+""" "
+Model service for credit card fraud detection.
+This service handles model loading, preprocessing of input data, and prediction.
+"""
+
 import base64
 import json
-import os
 import pickle
 from datetime import datetime
 
 import mlflow
 import mlflow.artifacts
 import numpy as np
-import pandas as pd
 from dotenv import load_dotenv
 
 import utils
@@ -34,6 +37,11 @@ def get_lastest_model_version():
 
 
 def get_standard_scaler():
+    """
+    Get the standard scaler from the latest model version.
+    Returns:
+        StandardScaler: The standard scaler used for preprocessing.
+    """
     run_id = get_lastest_model_version().run_id
     print(f"Loading scaler from run_id: {run_id}")
     path = mlflow.artifacts.download_artifacts(
@@ -47,6 +55,11 @@ def get_standard_scaler():
 
 
 def load_model():
+    """
+    Load the latest model version from MLflow.
+    Returns:
+        tuple: The loaded model and its version.
+    """
     model_version = get_lastest_model_version().version
     print(f"Loading model from: {model_version}")
     model = mlflow.pyfunc.load_model(
@@ -56,13 +69,33 @@ def load_model():
 
 
 def base64_decode(encoded_data):
+    """
+    Decode base64 encoded data to a dictionary.
+    Args:
+        encoded_data (str): Base64 encoded string.
+    Returns:
+        dict: Decoded transaction event data.
+    """
     decoded_data = base64.b64decode(encoded_data).decode("utf-8")
     transaction_event = json.loads(decoded_data)
     return transaction_event
 
 
 class ModelService:
+    """
+    Model service for credit card fraud detection.
+    This service handles model loading, preprocessing of input data, and prediction.
+    """
+
     def __init__(self, model, scaler, model_version=None, callbacks=None):
+        """
+        Initialize the ModelService with the model, scaler, and optional callbacks.
+        Parameters:
+            model: The trained model for prediction.
+            scaler: The scaler for preprocessing input data.
+            model_version: The version of the model (optional).
+            callbacks: A list of callback functions (optional).
+        """
         self.model = model
         self.scaler = scaler
         self.model_version = model_version
@@ -110,7 +143,11 @@ class ModelService:
         return prediction  # Return the prediction result
 
     def lambda_handler(self, event):
-
+        """
+        AWS Lambda handler for processing Kinesis events.
+        Args:
+            event (dict): The event data from Kinesis.
+        """
         prediction_events = []
         for record in event["Records"]:
             transaction_event = base64_decode(record["kinesis"]["data"])
