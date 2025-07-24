@@ -52,7 +52,7 @@ def load_model():
     model = mlflow.pyfunc.load_model(
         model_uri=f"models:/CreditCardFraudDetector-MLP/{model_version}"
     )
-    return model
+    return model, model_version
 
 
 def base64_decode(encoded_data):
@@ -98,14 +98,23 @@ class ModelService:
         features = features.reshape(1, -1)
         return features
 
-    def predict(self, encoded_data):
+    def predict(self, transaction_event):
         """
         Predict if the transaction is fraudulent or not.
         """
-        transaction_event = base64_decode(encoded_data)
         features = self.preprocess(transaction_event)
         features = features.reshape(1, -1)  # Reshape for single sample prediction
         features = self.scaler.transform(features)
         prediction = self.model.predict(features).argmax(axis=1).item()
 
         return prediction  # Return the prediction result
+
+    def lambda_handler(self, event):
+
+        prediction_events = []
+        for record in event["Records"]:
+            transaction_event = base64_decode(record["kinesis"]["data"])
+            prediction = self.predict(transaction_event)
+            prediction_events.append(
+                {"prediction": prediction, "model_version": self.model_version}
+            )

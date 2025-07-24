@@ -13,8 +13,9 @@ def read_text(file):
 
 
 def test_load_model():
-    model = model_service.load_model()
+    model, model_version = model_service.load_model()
     assert model is not None
+    assert model_version is not None
 
 
 def test_get_standard_scaler():
@@ -107,9 +108,12 @@ def test_preprocess():
 
 
 def test_model_predict():
-    model = model_service.load_model()
+    model, model_version = model_service.load_model()
     scaler = model_service.get_standard_scaler()
-    model_service_instance = model_service.ModelService(model=model, scaler=scaler)
+    model_service_instance = model_service.ModelService(
+        model=model, scaler=scaler, model_version=model_version
+    )
     encoded_data = read_text("data.b64")
-    prediction = model_service_instance.predict(encoded_data)
+    transaction_event = model_service.base64_decode(encoded_data)
+    prediction = model_service_instance.predict(transaction_event)
     assert prediction == 0
