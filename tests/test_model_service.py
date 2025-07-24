@@ -3,7 +3,6 @@ from pathlib import Path
 import numpy as np
 
 import model_service
-import utils
 
 
 def read_text(file):
