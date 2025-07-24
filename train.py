@@ -48,11 +48,11 @@ def parse_args():
         action="store_true",
         help="Perform grid search for hyperparameter tuning",
     )
-    # parser.add_argument(
-    #     "--register_model",
-    #     action="store_true",
-    #     help="Register the best model in MLflow Model Registry",
-    # )
+    parser.add_argument(
+        "--register_model",
+        action="store_true",
+        help="Register the best model in MLflow Model Registry",
+    )
     parser.add_argument(
         "--quick_debug",
         action="store_true",
@@ -219,33 +219,29 @@ def grid_search(
     return best_model_recall
 
 
-# @task(name="register_model", log_prints=True)
-# def register_model():
-#     """
-#     Register the best model in MLflow Model Registry.
-#     """
-#     client = mlflow.MlflowClient(TRACKING_URI)
-#     experiments = client.search_experiments()
-#     if not experiments:
-#         print("No experiments found.")
-#         return
-#     best_experiment = experiments[0]
-#     runs = client.search_runs(
-#         experiment_ids=[best_experiment.experiment_id],
-#         order_by=[
-#             "metrics.best_recall desc",
-#         ],
-#         filter_string="metrics.best_f1 >= 0.7"
-#     )
-#     if not runs:
-#         print("No runs found.")
-#         return
-#     best_run = runs[0]
-#     print(f"Best run: {best_run.info.run_id}")
-#     mlflow.register_model(
-#         model_uri=f"runs:/{best_run.info.run_id}/model",
-#         name="CreditCardFraudDetector-MLP",
-#     )
+@task(name="register_model", log_prints=True)
+def register_model():
+    """
+    Register the best model in MLflow Model Registry.
+    """
+
+    experiments = mlflow.search_experiments()
+    if not experiments:
+        print("No experiments found.")
+        return
+    best_experiment = experiments[0]
+    models = mlflow.search_logged_models(
+        experiment_ids=[best_experiment.experiment_id],
+        filter_string="metrics.best_f1 >= 0.7",
+        order_by=[{"field_name": "metrics.best_recall", "ascending": False}],
+        output_format="list",
+    )
+    best_model = models[0]
+
+    mlflow.register_model(
+        model_uri=best_model.model_uri,
+        name="CreditCardFraudDetector-MLP",
+    )
 
 
 @flow(name="main_flow", log_prints=True)
@@ -291,8 +287,8 @@ def main(args):
             scaler=scaler,
             learning_rate=args.learning_rate,
         )
-    # if args.register_model:
-    #     register_model()
+    if args.register_model:
+        register_model()
 
 
 if __name__ == "__main__":
