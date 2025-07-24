@@ -9,18 +9,18 @@ verify_ssl = true
 name = "downloadpytorch"
 
 [packages]
-torch = {version = "*", index = "downloadpytorch"}
-numpy = "*"
-pandas = "*"
-scikit-learn = "*"
-prefect = "*"
 mlflow = "*"
-tqdm = "*"
+prefect = "*"
+scikit-learn = "*"
+torch = {version = "*", index = "downloadpytorch"}
+boto3 = "*"
 
 [dev-packages]
 black = "*"
 isort = "*"
+pytest = "*"
 pylint = "*"
+pre-commit = "*"
 
 [requires]
 python_version = "3.12"
