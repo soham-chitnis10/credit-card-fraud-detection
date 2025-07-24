@@ -4,7 +4,6 @@ import pickle
 import time
 
 import mlflow
-import mlflow.utils
 import numpy as np
 import sklearn.metrics as metrics
 import torch
