@@ -117,3 +117,29 @@ def test_model_predict():
     transaction_event = model_service.base64_decode(encoded_data)
     prediction = model_service_instance.predict(transaction_event)
     assert prediction == 0
+
+
+def test_lambda_handler():
+    model, model_version = model_service.load_model()
+    scaler = model_service.get_standard_scaler()
+    model_service_instance = model_service.ModelService(
+        model=model, scaler=scaler, model_version=model_version
+    )
+
+    encoded_data = read_text("data.b64")
+
+    event = {"Records": [{"kinesis": {"data": encoded_data}}]}
+
+    actual_predictions = model_service_instance.lambda_handler(event)
+    expected_prediction = {
+        "predictions": [
+            {
+                "prediction": 0,
+                "model_version": model_version,
+                "trans_num": "0b242abb623afc578575680df30655b9",
+            }
+        ]
+    }
+    assert (
+        actual_predictions == expected_prediction
+    ), f"Expected: {expected_prediction}, but got: {actual_predictions}"

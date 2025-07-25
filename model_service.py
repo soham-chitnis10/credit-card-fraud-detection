@@ -3,14 +3,16 @@ Model service for credit card fraud detection.
 This service handles model loading, preprocessing of input data, and prediction.
 """
 
-import base64
+import os
 import json
+import base64
 import pickle
 from datetime import datetime
 
+import boto3
+import numpy as np
 import mlflow
 import mlflow.artifacts
-import numpy as np
 from dotenv import load_dotenv
 
 import utils
@@ -147,11 +149,60 @@ class ModelService:
         AWS Lambda handler for processing Kinesis events.
         Args:
             event (dict): The event data from Kinesis.
+        Returns:
+            dict: A dictionary containing predictions.
         """
         prediction_events = []
         for record in event["Records"]:
             transaction_event = base64_decode(record["kinesis"]["data"])
             prediction = self.predict(transaction_event)
-            prediction_events.append(
-                {"prediction": prediction, "model_version": self.model_version}
-            )
+            prediction_event = {
+                "prediction": prediction,
+                "model_version": self.model_version,
+                "trans_num": transaction_event['trans_num'],
+            }
+            for callback in self.callbacks:
+                callback(prediction_event)
+            prediction_events.append(prediction_event)
+        return {"predictions": prediction_events}
+
+
+class KinesisCallback:
+    def __init__(self, kinesis_client, prediction_stream_name):
+        self.kinesis_client = kinesis_client
+        self.prediction_stream_name = prediction_stream_name
+
+    def put_record(self, prediction_event):
+        ride_id = prediction_event['prediction']['ride_id']
+
+        self.kinesis_client.put_record(
+            StreamName=self.prediction_stream_name,
+            Data=json.dumps(prediction_event),
+            PartitionKey=str(ride_id),
+        )
+
+
+def create_kinesis_client():
+    endpoint_url = os.getenv('KINESIS_ENDPOINT_URL')
+
+    if endpoint_url is None:
+        return boto3.client('kinesis')
+
+    return boto3.client('kinesis', endpoint_url=endpoint_url)
+
+
+def init(prediction_stream_name: str, test_run: bool):
+    model, model_version = load_model()
+    scaler = get_standard_scaler()
+    callbacks = []
+
+    if not test_run:
+        kinesis_client = create_kinesis_client()
+        kinesis_callback = KinesisCallback(kinesis_client, prediction_stream_name)
+        callbacks.append(kinesis_callback.put_record)
+
+    model_service = ModelService(
+        model=model, scaler=scaler, model_version=model_version, callbacks=callbacks
+    )
+
+    return model_service
