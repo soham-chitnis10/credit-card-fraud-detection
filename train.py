@@ -2,14 +2,14 @@
 Training script for credit card fraud detection model.
 """
 
-import argparse
 import os
-import pickle
 import time
+import pickle
+import argparse
 
+import torch
 import mlflow
 import mlflow.pytorch
-import torch
 from dotenv import load_dotenv
 from prefect import flow, task
 from sklearn import metrics
@@ -164,7 +164,6 @@ def run_experiment(
     hidden_size,
     epochs,
     feature_size,
-    scaler,
     learning_rate=1e-3,
 ):
     """
@@ -176,7 +175,6 @@ def run_experiment(
         hidden_size (int): Size of the hidden layer in the model.
         epochs (int): Number of epochs to train.
         feature_size (int): Number of features in the input data.
-        scaler (sklearn.preprocessing.StandardScaler): Scaler for preprocessing input data.
         learning_rate (float): Learning rate for the optimizer.
     Returns:
         tuple: Best recall, F1 score, and precision achieved during training.
@@ -227,9 +225,7 @@ def run_experiment(
 
 
 @task(name="grid_search", log_prints=True)
-def grid_search(
-    train_loader, test_loader, device, hidden_size, epochs, feature_size, scaler
-):
+def grid_search(train_loader, test_loader, device, hidden_size, epochs, feature_size):
     """
     Perform grid search for hyperparameter tuning.
     Args:
@@ -239,7 +235,6 @@ def grid_search(
         hidden_size (int): Size of the hidden layer in the model.
         epochs (int): Number of epochs to train.
         feature_size (int): Number of features in the input data.
-        scaler (sklearn.preprocessing.StandardScaler): Scaler for preprocessing input data.
     Returns:
         float: Best recall achieved during grid search.
     """
@@ -259,7 +254,6 @@ def grid_search(
                 hidden_size,
                 epochs,
                 feature_size,
-                scaler=scaler,
                 learning_rate=lr.item(),
             )
             if model_recall > best_model_recall:
@@ -327,28 +321,26 @@ def main(args):
     if args.grid_search and not args.quick_debug:
         print("Ignoring provided model parameters")
         print("Performing grid search for hyperparameter tuning")
-        best_f1 = grid_search(
+        grid_search(
             train_loader,
             test_loader,
             device,
             args.hidden_size,
             args.epochs,
             feature_size,
-            scaler=scaler,
         )
     else:
         if args.quick_debug:
             args.epochs = 3
-        f1 = run_experiment(
-            train_loader,
-            test_loader,
-            device,
-            args.hidden_size,
-            args.epochs,
-            feature_size,
-            scaler=scaler,
-            learning_rate=args.learning_rate,
-        )
+            run_experiment(
+                train_loader,
+                test_loader,
+                device,
+                args.hidden_size,
+                args.epochs,
+                feature_size,
+                learning_rate=args.learning_rate,
+            )
     if args.register_model:
         register_model()
 

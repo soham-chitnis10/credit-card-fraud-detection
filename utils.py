@@ -2,10 +2,10 @@ import os
 import random
 
 import numpy as np
-import pandas as pd
 import torch
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
+import pandas as pd
 from torch.utils.data import DataLoader, TensorDataset
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from model import CreditCardFraudDetector
 
@@ -152,8 +152,7 @@ def get_device(use_cpu=False):
     """
     if use_cpu or not torch.cuda.is_available():
         return torch.device("cpu")
-    else:
-        return torch.device("cuda")
+    return torch.device("cuda")
 
 
 def get_optimizer(model, lr=0.001):
