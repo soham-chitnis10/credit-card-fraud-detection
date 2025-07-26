@@ -21,6 +21,7 @@ isort = "*"
 pytest = "*"
 pylint = "*"
 pre-commit = "*"
+deepdiff = "*"
 
 [requires]
 python_version = "3.12"
