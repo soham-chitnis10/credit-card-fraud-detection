@@ -173,12 +173,12 @@ class KinesisCallback:
         self.prediction_stream_name = prediction_stream_name
 
     def put_record(self, prediction_event):
-        ride_id = prediction_event['prediction']['ride_id']
+        trans_num = prediction_event['trans_num']
 
         self.kinesis_client.put_record(
             StreamName=self.prediction_stream_name,
             Data=json.dumps(prediction_event),
-            PartitionKey=str(ride_id),
+            PartitionKey=trans_num,
         )
 
 
@@ -192,6 +192,7 @@ def create_kinesis_client():
 
 
 def init(prediction_stream_name: str, test_run: bool):
+    mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000"))
     model, model_version = load_model()
     scaler = get_standard_scaler()
     callbacks = []
