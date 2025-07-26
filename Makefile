@@ -1,4 +1,4 @@
-
+LOCAL_IMAGE_NAME:=stream-credit-card-fraud-detection
 test:
 		pytest tests/
 
@@ -13,3 +13,6 @@ quality_checks:
 
 build-mlflow:
 		docker build -f 'mlflow.dockerfile' -t 'mlflow' '.'
+
+build:
+		docker build -f 'lambda.dockerfile' -t ${LOCAL_IMAGE_NAME} '.'
