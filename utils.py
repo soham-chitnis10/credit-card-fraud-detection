@@ -106,9 +106,9 @@ def get_scaler_and_features(df):
     """
 
     scaler = StandardScaler()
-    features = scaler.fit_transform(df)
+    new_features = scaler.fit_transform(df)
 
-    return scaler, features
+    return scaler, new_features
 
 
 def seed_everything(seed=42):
