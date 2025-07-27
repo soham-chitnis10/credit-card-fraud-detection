@@ -1,5 +1,5 @@
 #!/bin/bash
-
+cd integration_tests
 export LOCAL_IMAGE_NAME="stream-credit-card-fraud-detection"
 export PREDICTIONS_STREAM_NAME="credit-card-fraud-detection"
 if [ -z "${MLFLOW_TRACKING_URI}" ]; then
@@ -19,7 +19,6 @@ if [ -z "${AWS_DEFAULT_REGION}" ]; then
     exit 1
 fi
 
-docker build -f '../lambda.dockerfile' -t ${LOCAL_IMAGE_NAME} '..'
 
 docker compose up -d
 

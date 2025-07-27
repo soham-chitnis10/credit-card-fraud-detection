@@ -15,9 +15,13 @@ build-mlflow:
 		docker build -f 'mlflow.dockerfile' -t 'mlflow' '.'
 
 build-lambda:
-		quality_checks test
-		docker build -f 'lambda.dockerfile' -t ${LOCAL_IMAGE_NAME} '.'
+		docker build -f 'lambda.dockerfile' -t ${LOCAL_IMAGE_NAME} .
 
-publish-mlflow:
-		build-mlflow
-		bash scripts/publish_ecr_mlflow_images.sh
+integration-test: build-lambda
+		bash integration_tests/run.sh
+
+publish-mlflow: build-mlflow
+		bash scripts/publish_ecr_mlflow_image.sh
+
+publish-lambda: integration-test
+		bash scripts/publish_ecr_lambda_image.sh
