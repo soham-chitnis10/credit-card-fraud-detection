@@ -6,11 +6,12 @@ PREDICTIONS_STREAM_NAME = os.getenv(
     'PREDICTIONS_STREAM_NAME', 'credit-card-fraud-detection'
 )
 TEST_RUN = os.getenv('TEST_RUN', 'False') == 'True'
-
+MODEL_VERSION = os.getenv('MODEL_VERSION', None)
 
 model_service_instance = model_service.init(
     prediction_stream_name=PREDICTIONS_STREAM_NAME,
     test_run=TEST_RUN,
+    model_version=MODEL_VERSION,
 )
 
 
