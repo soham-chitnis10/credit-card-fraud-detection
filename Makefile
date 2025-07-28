@@ -3,6 +3,7 @@ test:
 		pytest tests/
 
 setup:
+		pip install -U pipenv
 		pipenv install --dev
 		pre-commit install
 

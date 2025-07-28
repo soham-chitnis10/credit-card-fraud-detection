@@ -225,7 +225,7 @@ def run_experiment(
 
 
 @task(name="grid_search", log_prints=True)
-def grid_search(train_loader, test_loader, device, hidden_size, epochs, feature_size):
+def grid_search(train_loader, test_loader, device, epochs, feature_size):
     """
     Perform grid search for hyperparameter tuning.
     Args:
@@ -325,7 +325,6 @@ def main(args):
             train_loader,
             test_loader,
             device,
-            args.hidden_size,
             args.epochs,
             feature_size,
         )

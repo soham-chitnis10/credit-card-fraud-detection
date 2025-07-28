@@ -64,7 +64,7 @@ def load_model(model_version=None):
     """
     if model_version is None:
         model_version = get_lastest_model_version().version
-        print(f"Loading latest model version")
+        print("Loading latest model version")
     print(f"Loading model from: {model_version}")
     model = mlflow.pyfunc.load_model(
         model_uri=f"models:/CreditCardFraudDetector-MLP/{model_version}"
