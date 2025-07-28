@@ -24,7 +24,7 @@ jobs:
         with:
           python-version: 3.12
       - name: Install dependencies
-        run: make setup
+        run: make install
 
       - name: Quality Check
         run: pipenv run make quality_checks

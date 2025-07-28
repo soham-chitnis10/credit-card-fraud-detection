@@ -2,9 +2,11 @@ LOCAL_IMAGE_NAME:=stream-credit-card-fraud-detection
 test:
 		pytest tests/
 
-setup:
+install:
 		pip install -U pipenv
 		pipenv install --dev
+
+setup:	install
 		pre-commit install
 
 quality_checks:
