@@ -140,7 +140,6 @@ class ModelService:
         Predict if the transaction is fraudulent or not.
         """
         features = self.preprocess(transaction_event)
-        features = features.reshape(1, -1)  # Reshape for single sample prediction
         features = self.scaler.transform(features)
         prediction = self.model.predict(features).argmax(axis=1).item()
 
