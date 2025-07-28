@@ -212,3 +212,4 @@ data/*
 mlartifacts/*
 *.pkl
 .vscode/*
+*.terraform*
