@@ -6,7 +6,7 @@ resource "aws_lambda_function" "kinesis_lambda" {
     tracing_config {
       mode = "Active"
     }
-    timeout = 180
+    timeout = 600
 
 }
 
