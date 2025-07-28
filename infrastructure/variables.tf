@@ -1,14 +1,12 @@
 variable "aws_region" {
   description = "The AWS region where the resources will be created."
   type        = string
-  default     = "us-east-2"
 
 }
 
 variable "project_id" {
   description = "The unique identifier for the project."
   type        = string
-  default     = "credit-card-fraud-detection"
 
 }
 
@@ -26,7 +24,7 @@ variable "output_stream_name" {
 variable "lambda_function_name" {
   description = "Name of the Lambda function"
   type        = string
-  default     = "kinesis-lambda-function"
+  default     = "lambda-function"
 
 }
 
