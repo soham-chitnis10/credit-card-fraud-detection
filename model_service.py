@@ -65,7 +65,7 @@ def load_model(model_version=None):
     model_info = get_lastest_model_version()
     print("Loading latest model version")
     model = mlflow.pyfunc.load_model(model_uri=model_info.source)
-    return model, model_version
+    return model, model_info.version
 
 
 def base64_decode(encoded_data):
