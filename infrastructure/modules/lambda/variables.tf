@@ -27,3 +27,8 @@ variable "output_stream_name" {
 variable "output_stream_arn" {
   description = "ARN of output stream where all the events will be passed"
 }
+
+variable "mlflow_tracking_uri" {
+  description = "MLflow tracking URI"
+  type        = string
+}

@@ -33,3 +33,9 @@ variable "ecr_repo_name" {
   type        = string
 
 }
+
+variable "mlflow_tracking_uri" {
+  description = "MLflow tracking URI"
+  type        = string
+
+}

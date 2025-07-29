@@ -42,4 +42,5 @@ module "lambda_function" {
     source_stream_arn    = module.source_kinesis_stream.stream_arn
     output_stream_name   = "${var.output_stream_name}-${var.project_id}"
     output_stream_arn    = module.output_kinesis_stream.stream_arn
+    mlflow_tracking_uri = "${var.mlflow_tracking_uri}"
 }

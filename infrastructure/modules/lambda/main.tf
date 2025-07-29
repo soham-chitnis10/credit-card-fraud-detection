@@ -8,6 +8,13 @@ resource "aws_lambda_function" "kinesis_lambda" {
     }
     timeout = 600
 
+    environment {
+  variables = {
+    PREDICTIONS_STREAM_NAME = var.output_stream_name
+    MLFLOW_TRACKING_URI = var.mlflow_tracking_uri // Replace with actual MLflow tracking URI
+  }
+}
+
 }
 
 resource "aws_lambda_function_event_invoke_config" "kinesis_lambda_event" {
