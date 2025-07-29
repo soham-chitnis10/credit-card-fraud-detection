@@ -62,13 +62,9 @@ def load_model(model_version=None):
     Returns:
         tuple: The loaded model and its version.
     """
-    if model_version is None:
-        model_version = get_lastest_model_version().version
-        print("Loading latest model version")
-    print(f"Loading model from: {model_version}")
-    model = mlflow.pyfunc.load_model(
-        model_uri=f"models:/CreditCardFraudDetector-MLP/{model_version}"
-    )
+    model_info = get_lastest_model_version()
+    print("Loading latest model version")
+    model = mlflow.pyfunc.load_model(model_uri=model_info.source)
     return model, model_version
 
 
@@ -195,7 +191,9 @@ def create_kinesis_client():
 def init(prediction_stream_name: str, test_run: bool, model_version=None):
     mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000"))
     model, model_version = load_model(model_version=model_version)
+    print(f"Loaded model version: {model_version}")
     scaler = get_standard_scaler()
+    print("Loaded scaler")
     callbacks = []
 
     if not test_run:
