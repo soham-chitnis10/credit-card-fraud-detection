@@ -56,7 +56,7 @@ def get_standard_scaler():
     return scaler
 
 
-def load_model(model_version=None):
+def load_model():
     """
     Load the latest model version from MLflow.
     Returns:
@@ -188,9 +188,9 @@ def create_kinesis_client():
     return boto3.client('kinesis', endpoint_url=endpoint_url)
 
 
-def init(prediction_stream_name: str, test_run: bool, model_version=None):
+def init(prediction_stream_name: str, test_run: bool):
     mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000"))
-    model, model_version = load_model(model_version=model_version)
+    model, model_version = load_model()
     print(f"Loaded model version: {model_version}")
     scaler = get_standard_scaler()
     print("Loaded scaler")
