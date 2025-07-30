@@ -26,5 +26,5 @@ integration-test: build-web-service
 publish-mlflow: build-mlflow
 		bash scripts/publish_ecr_mlflow_image.sh
 
-publish-web-service: integration-test
+publish-web-service: build-web-service
 		bash scripts/publish_ecr_web_service_image.sh

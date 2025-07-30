@@ -13,7 +13,8 @@ disable = [
     "super-with-arguments",
     "too-many-arguments",
     "too-many-positional-arguments",
-    "duplicate-code"
+    "duplicate-code",
+    "import-error"
 ]
 
 [tool.black]
