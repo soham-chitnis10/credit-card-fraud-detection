@@ -18,5 +18,5 @@ fi
 
 REPO_URI=$(aws ecr describe-repositories --repository-names $ECR_REPOSITORY --query "repositories[0].repositoryUri" --output text)
 echo "Repository URI: $REPO_URI"
-docker tag stream-credit-card-fraud-detection:latest $REPO_URI:stream-credit-card-fraud-detection
-docker push --platform linux/x86_64 $REPO_URI:stream-credit-card-fraud-detection
+docker tag web-service-credit-card-fraud-detection:latest $REPO_URI:web-service-credit-card-fraud-detection
+docker push --platform linux/x86_64 $REPO_URI:web-service-credit-card-fraud-detection

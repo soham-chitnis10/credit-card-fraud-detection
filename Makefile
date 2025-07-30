@@ -1,4 +1,4 @@
-LOCAL_IMAGE_NAME:=stream-credit-card-fraud-detection
+LOCAL_IMAGE_NAME:=web-service-credit-card-fraud-detection
 test:
 		pytest tests/
 
@@ -17,14 +17,14 @@ quality_checks:
 build-mlflow:
 		docker build -f 'mlflow.dockerfile' -t 'mlflow' '.'
 
-build-lambda:
-		docker build -f 'lambda.dockerfile' -t ${LOCAL_IMAGE_NAME} .
+build-web-service:
+		docker build -f 'web-service.dockerfile' -t ${LOCAL_IMAGE_NAME} .
 
-integration-test: build-lambda
+integration-test: build-web-service
 		bash integration_tests/run.sh
 
 publish-mlflow: build-mlflow
 		bash scripts/publish_ecr_mlflow_image.sh
 
-publish-lambda: integration-test
-		bash scripts/publish_ecr_lambda_image.sh
+publish-web-service: build-web-service
+		bash scripts/publish_ecr_web_service_image.sh
