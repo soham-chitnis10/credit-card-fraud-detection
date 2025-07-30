@@ -1,7 +1,5 @@
 #!/bin/bash
-cd integration_tests
-export LOCAL_IMAGE_NAME="stream-credit-card-fraud-detection"
-export PREDICTIONS_STREAM_NAME="credit-card-fraud-detection"
+
 if [ -z "${MLFLOW_TRACKING_URI}" ]; then
     echo "MLFLOW_TRACKING_URI is not set. Please set it before running the script."
     exit 1
@@ -19,35 +17,24 @@ if [ -z "${AWS_DEFAULT_REGION}" ]; then
     exit 1
 fi
 
+docker run -d --rm \
+    -e MLFLOW_TRACKING_URI="${MLFLOW_TRACKING_URI}" \
+    -e AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}" \
+    -e AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}" \
+    -e AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION}" \
+    -p 8000:8000 \
+    web-service-credit-card-fraud-detection:latest
 
-docker compose up -d
+sleep 10
 
-sleep 5
+python integration_tests/test_model_prediction.py
 
-aws --endpoint-url=http://localhost:4566 \
-    kinesis create-stream \
-    --stream-name credit-card-fraud-detection \
-    --shard-count 1
-pipenv run python test_docker.py
-
-
-ERROR_CODE=$?
-
-if [ ${ERROR_CODE} != 0 ]; then
-    docker compose logs
-    docker compose down
-    exit ${ERROR_CODE}
+if [ $? -ne 0 ]; then
+    echo "Integration tests failed."
+    docker stop $(docker ps -q --filter ancestor=web-service-credit-card-fraud-detection:latest)
+    exit 1
 fi
 
-pipenv run python test_kinesis.py
-
-ERROR_CODE=$?
-
-if [ ${ERROR_CODE} != 0 ]; then
-    docker compose logs
-    docker compose down
-    exit ${ERROR_CODE}
-fi
-
-
-docker compose down
+docker stop $(docker ps -q --filter ancestor=web-service-credit-card-fraud-detection:latest)
+echo "Docker container stopped."
+echo "Integration tests completed."

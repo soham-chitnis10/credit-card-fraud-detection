@@ -4,20 +4,35 @@ This service handles model loading, preprocessing of input data, and prediction.
 """
 
 import os
-import json
-import base64
 import pickle
 from datetime import datetime
 
-import boto3
 import numpy as np
 import mlflow
 import mlflow.artifacts
-from dotenv import load_dotenv
 
-import utils
-
-load_dotenv()
+FEATURES = [
+    "amt",
+    "lat",
+    "long",
+    "merch_lat",
+    "merch_long",
+    "trans_time",
+    "month",
+    "category_food_dining",
+    "category_gas_transport",
+    "category_grocery_net",
+    "category_grocery_pos",
+    "category_health_fitness",
+    "category_home",
+    "category_kids_pets",
+    "category_misc_net",
+    "category_misc_pos",
+    "category_personal_care",
+    "category_shopping_net",
+    "category_shopping_pos",
+    "category_travel",
+]
 
 
 def get_lastest_model_version():
@@ -68,41 +83,26 @@ def load_model():
     return model, model_info.version
 
 
-def base64_decode(encoded_data):
-    """
-    Decode base64 encoded data to a dictionary.
-    Args:
-        encoded_data (str): Base64 encoded string.
-    Returns:
-        dict: Decoded transaction event data.
-    """
-    decoded_data = base64.b64decode(encoded_data).decode("utf-8")
-    transaction_event = json.loads(decoded_data)
-    return transaction_event
-
-
 class ModelService:
     """
     Model service for credit card fraud detection.
     This service handles model loading, preprocessing of input data, and prediction.
     """
 
-    def __init__(self, model, scaler, model_version=None, callbacks=None):
+    def __init__(self, model, scaler, model_version=None):
         """
         Initialize the ModelService with the model, scaler, and optional callbacks.
         Parameters:
             model: The trained model for prediction.
             scaler: The scaler for preprocessing input data.
             model_version: The version of the model (optional).
-            callbacks: A list of callback functions (optional).
         """
         self.model = model
         self.scaler = scaler
         self.model_version = model_version
-        self.callbacks = callbacks or []
 
     @classmethod
-    def preprocess(cls, transaction_event):
+    def preprocess(cls, transaction_event: dict):
         """
         Preprocess the transaction event data.
 
@@ -115,10 +115,11 @@ class ModelService:
         dt = datetime.strptime(
             transaction_event["trans_date_trans_time"], "%Y-%m-%d %H:%M:%S"
         )
-        transaction_event["trans_time"] = dt.hour * 3600 + dt.minute * 60 + dt.second
+
+        transaction_event['trans_time'] = dt.hour * 3600 + dt.minute * 60 + dt.second
         transaction_event["month"] = dt.month
         features = []
-        for feature in utils.features:
+        for feature in FEATURES:
             if feature.startswith("category"):
                 cat_type = feature.split("category_")[1]
                 if transaction_event["category"] == cat_type:
@@ -131,7 +132,7 @@ class ModelService:
         features = features.reshape(1, -1)
         return features
 
-    def predict(self, transaction_event):
+    def predict(self, transaction_event: dict):
         """
         Predict if the transaction is fraudulent or not.
         """
@@ -141,68 +142,15 @@ class ModelService:
 
         return prediction  # Return the prediction result
 
-    def lambda_handler(self, event):
-        """
-        AWS Lambda handler for processing Kinesis events.
-        Args:
-            event (dict): The event data from Kinesis.
-        Returns:
-            dict: A dictionary containing predictions.
-        """
-        prediction_events = []
-        for record in event["Records"]:
-            transaction_event = base64_decode(record["kinesis"]["data"])
-            prediction = self.predict(transaction_event)
-            prediction_event = {
-                "prediction": prediction,
-                "model_version": self.model_version,
-                "trans_num": transaction_event['trans_num'],
-            }
-            for callback in self.callbacks:
-                callback(prediction_event)
-            prediction_events.append(prediction_event)
-        return {"predictions": prediction_events}
 
-
-class KinesisCallback:
-    def __init__(self, kinesis_client, prediction_stream_name):
-        self.kinesis_client = kinesis_client
-        self.prediction_stream_name = prediction_stream_name
-
-    def put_record(self, prediction_event):
-        trans_num = prediction_event['trans_num']
-
-        self.kinesis_client.put_record(
-            StreamName=self.prediction_stream_name,
-            Data=json.dumps(prediction_event),
-            PartitionKey=trans_num,
-        )
-
-
-def create_kinesis_client():
-    endpoint_url = os.getenv('KINESIS_ENDPOINT_URL')
-
-    if endpoint_url is None:
-        return boto3.client('kinesis')
-
-    return boto3.client('kinesis', endpoint_url=endpoint_url)
-
-
-def init(prediction_stream_name: str, test_run: bool):
+def init():
     mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000"))
     model, model_version = load_model()
     print(f"Loaded model version: {model_version}")
     scaler = get_standard_scaler()
     print("Loaded scaler")
-    callbacks = []
-
-    if not test_run:
-        kinesis_client = create_kinesis_client()
-        kinesis_callback = KinesisCallback(kinesis_client, prediction_stream_name)
-        callbacks.append(kinesis_callback.put_record)
-
     model_service = ModelService(
-        model=model, scaler=scaler, model_version=model_version, callbacks=callbacks
+        model=model, scaler=scaler, model_version=model_version
     )
 
     return model_service

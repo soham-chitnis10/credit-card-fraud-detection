@@ -12,7 +12,8 @@ disable = [
     "redefined-outer-name",
     "super-with-arguments",
     "too-many-arguments",
-    "too-many-positional-arguments"
+    "too-many-positional-arguments",
+    "duplicate-code"
 ]
 
 [tool.black]
