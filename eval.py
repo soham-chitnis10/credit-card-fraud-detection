@@ -27,7 +27,7 @@ def parse_args():
     parser.add_argument(
         "--url",
         type=str,
-        default="http://ec2-18-117-253-36.us-east-2.compute.amazonaws.com:8000/predict",
+        required=True,
         help="URL of the prediction service",
     )
     parser.add_argument(
