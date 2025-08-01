@@ -213,3 +213,4 @@ mlartifacts/*
 *.pkl
 .vscode/*
 *.terraform*
+project_id.txt
