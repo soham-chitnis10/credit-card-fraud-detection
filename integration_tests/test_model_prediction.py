@@ -32,7 +32,7 @@ actual_response = response.json()
 expected_response = {
     "trans_num": "0b242abb623afc578575680df30655b9",
     "prediction": 0,
-    "model_version": "13",
+    "model_version": "15",
 }
 
 diff = DeepDiff(actual_response, expected_response, ignore_order=True)
