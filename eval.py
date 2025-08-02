@@ -72,9 +72,11 @@ def main(args):
             )
         )
 
-    pool.shutdown(wait=True)
+    dfs = []
+    for idx, future in enumerate(futures):
+        future.result()
+        dfs.append(pd.read_csv(files[idx]))
 
-    dfs = [pd.read_csv(f) for f in files]
     predictions = pd.concat(dfs, ignore_index=True)
     df['is_fraud_prediction'] = predictions['prediction']
 
