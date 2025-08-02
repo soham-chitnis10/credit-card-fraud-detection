@@ -46,7 +46,7 @@ bash training_script.sh
 This create a new experiment and perform grid search to find the best hyperparamters and model architecture. This script is starts a prefect server on the local system for the workflow orchestration. This is store experiment information to the backend store, save the artifacts including the model to the S3 bucket.
 
 ### Deployment
-
+The web server is build using FastAPI for model serving.
 Run the below command to build and publish the docker image for the web server to the ECR repository
 ```bash
 make publish-web-server
