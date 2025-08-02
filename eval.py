@@ -54,24 +54,7 @@ def main(args):
             predict_df.loc[len(predict_df)] = {
                 "trans_num": response["trans_num"],
                 "prediction": response['prediction'],
-            try:
-                resp = requests.post(
-                    args.url, json=transaction_event, timeout=180
-                )
-                resp.raise_for_status()
-                response = resp.json()
-                if "trans_num" not in response or "prediction" not in response:
-                    raise KeyError("Missing 'trans_num' or 'prediction' in response")
-                predict_df.loc[len(predict_df)] = {
-                    "trans_num": response["trans_num"],
-                    "prediction": response['prediction'],
-                }
-            except requests.RequestException as e:
-                print(f"HTTP error for transaction {transaction_event.get('trans_num', 'unknown')}: {e}")
-            except ValueError as e:
-                print(f"Invalid JSON response for transaction {transaction_event.get('trans_num', 'unknown')}: {e}")
-            except KeyError as e:
-                print(f"Missing expected key in response for transaction {transaction_event.get('trans_num', 'unknown')}: {e}")
+            }
         predict_df.to_csv(output_path, index=False)
 
     pool = concurrent.futures.ThreadPoolExecutor(max_workers=args.num_workers)
