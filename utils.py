@@ -9,29 +9,6 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from model import CreditCardFraudDetector
 
-features = [
-    "amt",
-    "lat",
-    "long",
-    "merch_lat",
-    "merch_long",
-    "trans_time",
-    "month",
-    "category_food_dining",
-    "category_gas_transport",
-    "category_grocery_net",
-    "category_grocery_pos",
-    "category_health_fitness",
-    "category_home",
-    "category_kids_pets",
-    "category_misc_net",
-    "category_misc_pos",
-    "category_personal_care",
-    "category_shopping_net",
-    "category_shopping_pos",
-    "category_travel",
-]
-
 
 def load_data(file_path):
     """
@@ -56,13 +33,13 @@ def preprocess_data(df):
     Returns:
     pd.DataFrame: The preprocessed DataFrame.
     """
-    df["trans_date_trans_time"] = pd.to_datetime(
-        df["trans_date_trans_time"], format="%Y-%m-%d %H:%M:%S"
+    df.trans_date_trans_time = pd.to_datetime(
+        df.trans_date_trans_time, format="%Y-%m-%d %H:%M:%S"
     )
-    df["trans_time"] = df["trans_date_trans_time"].apply(
+    df["trans_time"] = df.trans_date_trans_time.apply(
         lambda x: x.hour * 3600 + x.minute * 60 + x.second
     )
-    df["month"] = df["trans_date_trans_time"].apply(lambda x: x.month)
+    df["month"] = df.trans_date_trans_time.apply(lambda x: x.month)
 
     columns_to_drop = [
         "Unnamed: 0",
