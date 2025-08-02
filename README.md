@@ -62,7 +62,7 @@ docker run -p 8000:8000 \
             -e MLFLOW_TRACKING_SERVER_URI=remote_server_tracking_uri \
             -e AWS_ACCESS_KEY=your_access_key \
             -e AWS_SECRET_ACCESS_KEY=asecret_key \
-            -e AWS_DEFALULT_REGION=default_region
+            -e AWS_DEFAULT_REGION=default_region
             IMAGE_NAME
 ```
 The API of the web server would  `http://your-EC2-instance-public-DNS:8000/predict`
