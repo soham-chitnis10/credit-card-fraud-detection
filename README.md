@@ -69,7 +69,7 @@ The API of the web server would  `http://your-EC2-instance-public-DNS:8000/predi
 
 ### Testing and Monitoring
 
-For monitoring, Evidently AI is used. Create an account on Evidently cloud, API Key and Organization. Set them as environment varaibles `EVIDENTLY_API_KEY` and `ORG_ID`.
+For monitoring, Evidently AI is used. Create an account on Evidently cloud, API Key and Organization. Set them as environment variables `EVIDENTLY_API_KEY` and `ORG_ID`.
 
 To get predictions and monitor the results, use the following command
 
